@@ -39,7 +39,8 @@ module.exports = {
             state: user[0].state
         }
         return await User.update(user[0].id, userToUpodate)
-            .then(() => Utilities.responseBack(sails.statusCodes.OK, sails.messages.LOGIN_SUCCESS, res, { token: user[0].token }) )
+            .then(() => Utilities.responseBack(sails.statusCodes.OK, sails.messages.LOGIN_SUCCESS, 
+                res, { id: user[0].id, token: user[0].token }) )
             .catch(err => {
                 sails.log.debug(err);
                 Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.ERROR, res);
@@ -52,6 +53,10 @@ module.exports = {
             if (err) return Utilities.responseBack(sails.statusCodes.UNAUTHORIZED, sails.messages.UNAUTHORIZED, res);
             return Utilities.responseBack(sails.statusCodes.OK, sails.messages.LOGIN_SUCCESS, res, { token: token })
         });
+    },
+    validateLocalToken: async function(token){
+        // Validate if the user have an valid token
+        return await Utilities.verifyToken(token, function (err) { return err ? false : true });
     }
 };
 

@@ -18,5 +18,11 @@ module.exports.policies = {
   ***************************************************************************/
 
   // '*': true,
+  '*': ['isAuthorized'],
+  'UsersController': {
+    'create': true,
+    'greetings': true,
+    'login': true,
+  }
 
 };

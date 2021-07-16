@@ -25,7 +25,7 @@ module.exports = {
         let encPass = await Utilities.encrypt(userInfo.password); // Process to encrypt the password.
         if (!encPass) return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.ENCRYPT_ERROR, res); 
         let stringEncPass = JSON.stringify(encPass); // Convert to String to save in DB.
-        let user = { email: userInfo.email, password: stringEncPass, token: '', state: sails.states.ACTIVE }; // User data object.
+        let user = { email: userInfo.email, password: stringEncPass, token: '', state: sails.states.ACTIVE }; // User data object to DB.
         return await UtilitiesUsers.createUser(user, res);
     },
     greetings: function (req, res) {
@@ -48,6 +48,11 @@ module.exports = {
         let decrPass = Utilities.decrypt(objectPass); // Process to decrypt the password.
         if (decrPass !== userInfo.password) // Check if the passwords are equals.
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.EMAIL_PASSWORD_DONT_MATCH, res);
+        if (userValidations[0].token) {
+            let validateToken = await UtilitiesUsers.validateLocalToken(userValidations[0].token);
+            if (validateToken) return Utilities.responseBack(sails.statusCodes.OK, sails.messages.LOGIN_SUCCESS, 
+                res, { id: userValidations[0].id, token: userValidations[0].token }) // Return the saved token if is valid.
+        }
         let token = await Utilities.createToken({id: userValidations[0].id}); // Create the user token.
         userValidations[0].token = token; // Assign the token to the user.
         return await UtilitiesUsers.updateUserWhenLogin(userValidations, res); // Update the user.
