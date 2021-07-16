@@ -9,41 +9,61 @@ const UtilitiesPokemons = require('./UtilitiesPokemonsController');
 const UtilitiesUsers = require('./UtilitiesUsersController');
 
 module.exports = {
-    create: async function(req, res){
+    create: async function (req, res) {
         let pokemonInfo = req.allParams(); //PokemonInfo from the request.
         let pokemonValidations = UtilitiesPokemons.isValidPokemonData(pokemonInfo, sails.messages.CREATE); // Check pokemon data.
-        if (!pokemonValidations) 
-            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+        if (!pokemonValidations)
+            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
         pokemonValidations = await UtilitiesUsers.getUserById(pokemonInfo.idUser); // Check if the user exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.USER_DOESNT_EXIST, res);
-        let pokemon = { name: pokemonInfo.name, species: pokemonInfo.species, ability: pokemonInfo.ability,
-            color: pokemonInfo.color, isPrivate: true, state: sails.states.ACTIVE } // Pokemon data object to DB.
+        let pokemon = {
+            name: pokemonInfo.name, species: pokemonInfo.species, ability: pokemonInfo.ability,
+            color: pokemonInfo.color, isPrivate: true, state: sails.states.ACTIVE
+        } // Pokemon data object to DB.
         pokemon = await UtilitiesPokemons.createPokemon(pokemon);
-        let userPokemon = { idUser: pokemonInfo.idUser, idPokemon: pokemon.id, 
-            isLikedPokemon: false, state: sails.states.ACTIVE } // UserPokemon data object to DB.
+        let userPokemon = {
+            idUser: pokemonInfo.idUser, idPokemon: pokemon.id,
+            isLikedPokemon: false, state: sails.states.ACTIVE
+        } // UserPokemon data object to DB.
         return await UtilitiesPokemons.createUserPokemon(userPokemon, res, sails.messages.CREATE);
     },
-    deletePrivatePokemon: async function(req, res) {
+    createPublicPokemon: async function (req, res) {
+        let pokemonInfo = req.allParams(); //PokemonInfo from the request.
+        let pokemonValidations = UtilitiesPokemons.isValidPokemonData(pokemonInfo, sails.messages.CREATE_PUBLIC); // Check pokemon data.
+        if (!pokemonValidations)
+            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
+        let pokemon = {
+            name: pokemonInfo.name, species: pokemonInfo.species, ability: pokemonInfo.ability,
+            color: pokemonInfo.color, isPrivate: false, state: sails.states.ACTIVE
+        } // Pokemon data object to DB.
+        return await Pokemon.create(pokemon) // Create a public pokemon.
+            .then(() => Utilities.responseBack(sails.statusCodes.OK, sails.messages.POKEMON_CREATED, res))
+            .catch(err => {
+                sails.log.debug(err);
+                Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.ERROR, res);
+            });
+    },
+    deletePrivatePokemon: async function (req, res) {
         let pokemonInfo = req.allParams(); // PokemonInfo from the request.
-        if (!pokemonInfo.idPokemon || !pokemonInfo.idUser) 
-            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+        if (!pokemonInfo.idPokemon || !pokemonInfo.idUser)
+            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
         let pokemonValidations = await UtilitiesUsers.getUserById(pokemonInfo.idUser); // Check if the user exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.USER_DOESNT_EXIST, res);
         pokemonValidations = await UtilitiesPokemons.getPokemonById(pokemonInfo.idPokemon); // Check if the pokemon exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.POKEMON_DOESNT_EXIST, res);
         let userPokemon = await UtilitiesPokemons.getUserPokemonByIds(pokemonInfo.idUser, pokemonInfo.idPokemon); // Check if UserPokemon exist.
-        if (userPokemon.length === 0 || !pokemonValidations[0].isPrivate) 
+        if (userPokemon.length === 0 || !pokemonValidations[0].isPrivate)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.POKEMON_DOESNT_YOURS, res);
         let pokemon = { state: 0 }; // Deleted logical, change state.
         return await UtilitiesPokemons.updatePrivatePokemon(pokemonValidations[0].id, pokemon, res, sails.messages.DELETE);
     },
-    deletePrivatePokemons: async function(req, res) {
+    deletePrivatePokemons: async function (req, res) {
         let pokemonInfo = req.allParams(); // PokemonInfo from the request.
         let pokemonValidations = await UtilitiesUsers.getUserById(pokemonInfo.idUser); // Check if the user exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.USER_DOESNT_EXIST, res);
         let update = 'UPDATE public.pokemons AS poke SET state = $1 ';
         let from = 'FROM user_pokemons AS user_poke  ';
@@ -57,15 +77,17 @@ module.exports = {
         try {
             const reqBody = req.allParams();
             let page = Number(reqBody.page);
-            if (isNaN(page) || page < 0) 
-                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+            if (isNaN(page) || page < 0)
+                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
             const limit = sails.limitPagination;
             const skip = Number(page) * limit;
             const where = { isPrivate: false, state: 1 };
             // Implements the ORM find option.
-            let pokemons = await Pokemon.find({ where: where, 
+            let pokemons = await Pokemon.find({
+                where: where,
                 select: ['id', 'name', 'species', 'ability', 'color', 'state'],
-                skip: skip, limit: limit}).sort('id ASC');
+                skip: skip, limit: limit
+            }).sort('id ASC');
             if (!pokemons || pokemons.length === 0) {
                 Utilities.responseBack(sails.statusCodes.NO_CONTENT, sails.messages.POKEMONS_DONT_FOUND, res);
             } else {
@@ -83,8 +105,8 @@ module.exports = {
             const reqBody = req.allParams();
             let page = Number(reqBody.page);
             let idUser = Number(reqBody.idUser);
-            if (isNaN(page) || page < 0 || isNaN(idUser) || idUser < 0) 
-                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+            if (isNaN(page) || page < 0 || isNaN(idUser) || idUser < 0)
+                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
             const limit = sails.limitPagination;
             const skip = Number(page) * limit;
             let select = 'SELECT poke.id, poke.name, poke.species, poke.ability, poke.ability, poke.state ';
@@ -113,8 +135,8 @@ module.exports = {
             const reqBody = req.allParams();
             let page = Number(reqBody.page);
             let idUser = Number(reqBody.idUser);
-            if (isNaN(page) || page < 0 || isNaN(idUser) || idUser < 0) 
-                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+            if (isNaN(page) || page < 0 || isNaN(idUser) || idUser < 0)
+                return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
             const limit = sails.limitPagination;
             const skip = Number(page) * limit;
             let select = 'SELECT poke.id, poke.name, poke.species, poke.ability, poke.ability, poke.state ';
@@ -138,42 +160,44 @@ module.exports = {
             Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.ERROR, res);
         }
     },
-    updatePrivatePokemon: async function(req, res) {
+    updatePrivatePokemon: async function (req, res) {
         let pokemonInfo = req.allParams(); //PokemonInfo from the request.
         let pokemonValidations = UtilitiesPokemons.isValidPokemonData(pokemonInfo, sails.messages.UPDATE); // Check pokemon data.
-        if (!pokemonValidations) 
-            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+        if (!pokemonValidations)
+            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
         pokemonValidations = await UtilitiesUsers.getUserById(pokemonInfo.idUser); // Check if the user exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.USER_DOESNT_EXIST, res);
         pokemonValidations = await UtilitiesPokemons.getPokemonById(pokemonInfo.id); // Check if the pokemon exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.POKEMON_DOESNT_EXIST, res);
         let userPokemon = await UtilitiesPokemons.getUserPokemonByIds(pokemonInfo.idUser, pokemonInfo.id); // Check if UserPokemon exist.
-        if (userPokemon.length === 0 || !pokemonValidations[0].isPrivate) 
+        if (userPokemon.length === 0 || !pokemonValidations[0].isPrivate)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.POKEMON_DOESNT_YOURS, res);
         let pokemon = UtilitiesPokemons.validateDataToUpdate(pokemonInfo, pokemonValidations); // Compare pokemon data to update.
         return await UtilitiesPokemons.updatePrivatePokemon(pokemonValidations[0].id, pokemon, res, sails.messages.UPDATE);
     },
-    updatePublicPokemon: async function(req, res) {
+    updatePublicPokemon: async function (req, res) {
         let pokemonInfo = req.allParams(); //PokemonInfo from the request.
         let idUser = pokemonInfo.idUser;
         let idPokemon = pokemonInfo.idPokemon;
         let pokemonValidations = idUser && idPokemon; // Check pokemon data.
-        if (!pokemonValidations) 
-            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
+        if (!pokemonValidations)
+            return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
         pokemonValidations = await UtilitiesUsers.getUserById(idUser); // Check if the user exist.
-        if (pokemonValidations.length === 0) 
+        if (pokemonValidations.length === 0)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.USER_DOESNT_EXIST, res);
         pokemonValidations = await UtilitiesPokemons.getPokemonById(idPokemon); // Check if the pokemon exist.
-        if (pokemonValidations.length === 0 || pokemonValidations[0].isPrivate) 
+        if (pokemonValidations.length === 0 || pokemonValidations[0].isPrivate)
             return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.POKEMON_DOESNT_EXIST, res);
         let userPokemon = await UtilitiesPokemons.getUserPokemonByIds(idUser, idPokemon); // Check if UserPokemon exist.
         if (userPokemon.length > 0) {
-            return await UtilitiesPokemons.updateUserPokemon(userPokemon[0].id, {isLikedPokemon: true}, res);
+            return await UtilitiesPokemons.updateUserPokemon(userPokemon[0].id, { isLikedPokemon: true }, res);
         } else {
-            userPokemon = { idUser: idUser, idPokemon: idPokemon, 
-                isLikedPokemon: true, state: sails.states.ACTIVE } // UserPokemon data object to DB.
+            userPokemon = {
+                idUser: idUser, idPokemon: idPokemon,
+                isLikedPokemon: true, state: sails.states.ACTIVE
+            } // UserPokemon data object to DB.
             return await UtilitiesPokemons.createUserPokemon(userPokemon, res, sails.messages.UPDATE);
         }
     }

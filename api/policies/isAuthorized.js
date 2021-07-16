@@ -5,7 +5,7 @@
  */
 
 const Utilities = require('../controllers/UtilitiesController');
-const endpointsNotIdUser = ['/pokemons/public/']
+const endpointsNotIdUser = ['/pokemons/public/', '/pokemons/public']
 
 module.exports = function (req, res, next) {
     const token = req.headers.token;
@@ -23,8 +23,8 @@ module.exports = function (req, res, next) {
                 let data = req.allParams();
                 let idUser = Number(data.idUser);
                 if (isNaN(idUser))
-                    return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.UNPROCESSABLE_ENTITY, res);
-                if (idUser !== token.id) 
+                    return Utilities.responseBack(sails.statusCodes.BAD_REQUEST, sails.messages.BAD_REQUEST, res);
+                if (idUser !== token.id)
                     return Utilities.responseBack(sails.statusCodes.INTERNAL_SERVER_ERROR, sails.messages.ONLY_USER, res);
             }
             next();

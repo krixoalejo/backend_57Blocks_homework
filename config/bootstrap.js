@@ -1,11 +1,13 @@
 
 // Import crypto to encrypt and decrypt the passwords.
-const crypto = require('crypto'), jwt = require('jsonwebtoken');
+const crypto = require('crypto'), jwt = require('jsonwebtoken'), Pokemon = require('../api/models/Pokemon.js');
 
 module.exports.bootstrap = async function() {
   // Messages of responses to the consumers.
   sails.messages = {
+    BAD_REQUEST: 'Bad request',
     CREATE: 'create',
+    CREATE_PUBLIC: 'create_public',
     DELETE: 'delete',
     ENCRYPT_ERROR: 'Oops, something happened with the encryption process, please try later!!!',
     EMAIL_ALREADY_REGISTERED: 'Email already registered.',
@@ -26,8 +28,8 @@ module.exports.bootstrap = async function() {
     POKEMONS_DELETED: 'Pokemons deleted successfully.',
     POKEMONS_FOUND: 'Pokemons found.',
     POKEMONS_DONT_FOUND: 'Pokemons don\'t found.',
+    RANDOM_NUMBER: 'There\'s your random number.',
     UNAUTHORIZED: 'Unauthorized',
-    UNPROCESSABLE_ENTITY: 'Unprocessable Entity',
     UPDATE: 'update',
     USER_CREATED: 'User created successfully.',
     USER_DOESNT_EXIST: 'The idUser doesn\'t exist.'

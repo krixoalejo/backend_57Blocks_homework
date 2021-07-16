@@ -1,6 +1,3 @@
--- Page to install postgres.
-http://www.postgresqltutorial.com/install-postgresql/
-
 -- Script to create the rol to use in Postgres.
 CREATE ROLE fiftysevenblocks LOGIN PASSWORD 'fiftysevenblocks';
 

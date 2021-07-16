@@ -7,8 +7,8 @@
 module.exports = {
   tableName: 'pokemons',
   primaryKey: 'id',
-  autocreatedAt : true,
-  autoupdatedAt : true,
+  autocreatedAt: true,
+  autoupdatedAt: true,
   attributes: {
     id: {
       type: 'number',

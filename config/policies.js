@@ -23,6 +23,7 @@ module.exports.policies = {
     'create': true,
     'greetings': true,
     'login': true,
+    'randomNumber': true,
   }
 
 };

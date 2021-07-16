@@ -7,8 +7,8 @@
 module.exports = {
   tableName: 'user_pokemons',
   primaryKey: 'id',
-  autocreatedAt : true,
-  autoupdatedAt : true,
+  autocreatedAt: true,
+  autoupdatedAt: true,
   attributes: {
     id: {
       type: 'number',
@@ -28,7 +28,7 @@ module.exports = {
       type: 'boolean',
       defaultsTo: false,
       columnName: 'isLikedPokemon'
-    },  
+    },
     state: {
       type: 'number',
       columnName: 'state'
